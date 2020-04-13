@@ -6,7 +6,7 @@ let data = require("./data.json");
 let songListData = require("./data.json"); //lazy fix
 let lastSearchMsg;
 
-client.login("NTMwMTQ2ODE2OTk4NTA2NDk4.XpO3Og.Oevs5yrIsl-tbguwj7D-frl_4bs");
+client.login("");
 
 client.on("ready", () => {
   console.log("Ready")
