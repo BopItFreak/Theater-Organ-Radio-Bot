@@ -5,8 +5,7 @@ const axios = require('axios');
 let data = require("./data.json");
 let songListData = require("./data.json"); //lazy fix
 let lastSearchMsg;
-
-client.login("");
+client.login(require("fs").readFileSync("./token.txt", "utf8"));
 
 client.on("ready", () => {
   console.log("Ready")
@@ -67,6 +66,7 @@ client.on("message", msg => {
           "color": 12291602,
           "timestamp": Date.now(),
           "footer": {
+            "icon_url": msg.author.avatarURL,
             "text": `Requested by ${msg.author.username}`
           },
           "description": `
@@ -75,6 +75,7 @@ client.on("message", msg => {
           **t!leave**: Makes the bot leave the voice channel you are currently in.
           **t!request**: Usage: t!request <id of song>. Requests a song to be played on the radio.
           **t!playing**: Displays information about the current song
+          **t!history**: Displays the songs that have already been played
           `
         }
       })
@@ -97,6 +98,7 @@ client.on("message", msg => {
                   filter: "audioonly",
                   quality: 'highestaudio'
                 });
+                global.connection = connection;
               }).catch(console.error);
 
               msg.react("👍");
@@ -130,6 +132,10 @@ client.on("message", msg => {
     }
     case "t!search":
     case "t!s": {
+      if (!input) {
+        msg.channel.send(`❌ Oop, Usage: t!search <input>`);
+        return;
+      }
       let searchResults = data.filter((d) => d.name.toLowerCase().includes(input.toLowerCase()));
       let generateSearchTemplate = (id, name, dashes, length) => {
         return `**ID**: ${id}, **Name**: ${name}, ${dashes} **Length**: ${length}\n`
@@ -141,9 +147,10 @@ client.on("message", msg => {
       if (searchResults.length > 0) {
         for (let i = 0; i < (searchResults.length >= 10 ? 10 : searchResults.length); i++) {
           let result = searchResults[i];
-          let name = truncate(result.name, 61, "…");
+          let name = truncate(result.name, 59, "…");
           let count = (104 - generateShortSearchTemplate(result.id, name).length) - `**Length**: ${result.songLength}\n`.length;
           //console.log(count)
+          if (count < 0) count = 0;
           let length = "-".repeat(count)
           searchTemplate = searchTemplate.concat(generateSearchTemplate(result.id, name, length, result.songLength));
         }
@@ -159,6 +166,7 @@ client.on("message", msg => {
           "color": 12291602,
           "timestamp": Date.now(),
           "footer": {
+            "icon_url": msg.author.avatarURL,
             "text": `Requested by ${msg.author.username}`
           }
         }
@@ -185,7 +193,7 @@ client.on("message", msg => {
             console.log(error);
           })
       } else {
-        msg.channel.send("Numba pls.")
+        msg.channel.send("❌ Oop, Usage: t!request <songID>");
       }
       break;
     }
@@ -200,64 +208,100 @@ client.on("message", msg => {
           data.duration = a.split(`<dt>Duration</dt>`)[1].split(`<dd>`)[1].split(`</dd>`)[0]
           data.info = a.split(`<dt>Information</dt>`)[1].split(`<dd class="broad">`)[1].split(`</dd>`)[0];
           data.listenersCount = a.split(`<dt>Listeners:</dt><dd> `)[1].split(" </dd>")[0];
-          data.nextSong = a.split("<dt>Coming Up...</dt><dd> ")[1].split("</dd>")[0];
-          let separator = a.split("<dt>Coming Up...</dt><dd> ")[1].split("</dd>")[1]
-          data.nextSongArtistAndAlbum = separator.split(`<dd>`)[1].split("</dd></dl>")[0]
+          //data.nextSong = a.split("<dt>Coming Up...</dt><dd> ")[1].split("</dd>")[0];
+          //let separator = a.split("<dt>Coming Up...</dt><dd> ")[1].split("</dd>")[1]
+          //data.nextSongArtistAndAlbum = separator.split(`<dd>`)[1].split("</dd></dl>")[0]
           //console.log(data)
           console.log(songListData.find((d) => d.album === data.album))
-          msg.channel.send({
-            "embed": {
-              "title": "Currently Playing Track Information",
-              "url": "https://atosradio.org/atosradio/songinfo.html",
-              "color": 12291602,
-              "timestamp": Date.now(),
-              "footer": {
-                "text": `Requested by ${msg.author.username}`
-              },
-              "thumbnail": {
-                "url": songListData.find((d) => d.album === data.album).pictureUrl
-              },
-              "fields": [
-                {
-                  "name": "Title",
-                  "value": data.title
-                },
-                {
-                  "name": "Artist",
-                  "value": data.artist
-                },
-                {
-                  "name": "Album",
-                  "value": data.album ? data.album : "No Album",
-                  "inline": true
-                },
-                {
-                  "name": "Duration",
-                  "value": data.duration,
-                  "inline": true
-                },
-                {
-                  "name": "Information",
-                  "value": data.info ? data.info : "No Information",
-                  "inline": true
-                },
-                {
-                  "name": "Listeners Count",
-                  "value": data.listenersCount,
-                  "inline": true
-                },
-                {
-                  "name": "Coming Up...",
-                  "value": data.nextSong + " | " + data.nextSongArtistAndAlbum,
-                  "inline": true
+          axios.get(`https://atosradio.org/atosradio/playing.html`)
+            .then((res) => {
+              let nextSong = {};
+              let nextNextSong = {};
+              nextSong.name = res.data.split(`<span class="comingIndex">`)[1].split(`</span>`)[0].split("1 -")[1].trim();
+              nextSong.artist = res.data.split(`<span class="comingIndex">`)[1].split(`</span>`)[1].split("</td><td>")[1].split("</td><td>")[0].trim()
+              nextSong.album = res.data.split(`<span class="comingIndex">`)[1].split(`</span>`)[1].split("</td><td>")[2].trim().split("</div>")[0].trim()
+              nextNextSong.name = res.data.split(`<span class="comingIndex">`)[2].split(`</span>`)[0].split("2 -")[1].trim();
+              nextNextSong.artist = res.data.split(`<span class="comingIndex">`)[2].split(`</span>`)[1].split("</td><td>")[1].split("</td><td>")[0].trim()
+              nextNextSong.album = res.data.split(`<span class="comingIndex">`)[2].split(`</span>`)[1].split("</td><td>")[2].trim().split("</div>")[0].trim()
+              msg.channel.send({
+                "embed": {
+                  "title": "Currently Playing Track Information",
+                  "url": "https://atosradio.org/atosradio/songinfo.html",
+                  "color": 12291602,
+                  "timestamp": Date.now(),
+                  "footer": {
+                    "icon_url": msg.author.avatarURL,
+                    "text": `Requested by ${msg.author.username}`
+                  },
+                  "thumbnail": {
+                    "url": songListData.find((d) => d.album === data.album).pictureUrl
+                  },
+                  "fields": [{
+                      "name": "Title",
+                      "value": data.title
+                    },
+                    {
+                      "name": "Artist",
+                      "value": data.artist
+                    },
+                    {
+                      "name": "Album",
+                      "value": data.album ? data.album : "No Album",
+                      "inline": true
+                    },
+                    {
+                      "name": "Duration",
+                      "value": data.duration,
+                      "inline": true
+                    },
+                    {
+                      "name": "Information",
+                      "value": data.info ? data.info : "No Information",
+                      "inline": true
+                    },
+                    {
+                      "name": "Listeners Count",
+                      "value": data.listenersCount,
+                      "inline": true
+                    },
+                    {
+                      "name": "Coming Up...",
+                      "value": `**1.** **Name**: ${nextSong.name}, **Artist**: ${nextSong.artist}, **Album**: ${nextSong.album}
+                                **2.** **Name**: ${nextNextSong.name}, **Artist**: ${nextNextSong.artist}, **Album**: ${nextNextSong.album}`,
+                      "inline": true
+                    }
+                  ]
                 }
-              ]
-            }
-          })
+              })
+            }).catch(function (error) {
+              msg.channel.send("Oop... \n" + "`" + error.message + "`")
+              console.log(error);
+            })
         })
         .catch(function (error) {
           msg.channel.send("Oop... \n" + "`" + error.message + "`")
           console.log(error);
+        })
+      break;
+    }
+    case "t!history": {
+      axios.get("http://atosradio.com:8001/played.html?sid=2")
+        .then((res) => {
+          let desc = res.data.split("<tbody>")[0].split("<b>Current Song</b>")[1].split("</table")[0].replace(/<[^>]*>/g, "bruh").replace(/bruhbruhbruhbruh/g, "\n`").replace(/bruhbruh/g, "` ");
+          msg.channel.send({
+              embed: {
+                "title": "Song History",
+                "url": "http://atosradio.com:8001/played.html?sid=2",
+                "color": 12291602,
+                "timestamp": Date.now(),
+                "footer": {
+                  "icon_url": msg.author.avatarURL,
+                  "text": `Requested by ${msg.author.username}`
+                },
+                "description": desc
+              }
+            }
+          )
         })
       break;
     }
@@ -313,9 +357,9 @@ client.on('message', async function (msg) {
             qwer = require("util").inspect(qwer, {
               depth: 0
             }). //replace(/undefined/g, "unduhfinded");
-              wer = qwer.split(/\r?\n|\r/g).slice(0, 100).join("\n");
+            wer = qwer.split(/\r?\n|\r/g).slice(0, 100).join("\n");
             //console.log(disdate)
-            await msg.channel.send('```js\n' + '-> ' + qwer + '\n``````ts\n' + typeOf(tonq) + "```" + "`success`" + ":timer:" + " " + prettyMs(Date.now() - global.disdate), {
+            await msg.channel.send('```js\n' + '-> ' + qwer + '\n``````ts\n' + typeOf(tonq) + "```" + "`success`" + ":timer:" + " " + prettyMs(Number.isFinite((Date.now() - global.disdate)) == true ? (Date.now() - global.disdate) : 0), {
               split: {
                 prepend: "\x60\x60\x60js\n",
                 append: "\n\x60\x60\x60"
@@ -326,7 +370,7 @@ client.on('message', async function (msg) {
         } else {
           if (!trued) {
             //console.log(disdate)
-            await msg.channel.send('```js\n' + '-> ' + eaa + '``````ts\n' + typeOf(tonq) + "``` " + "`success`" + ":timer:" + " " + prettyMs(Date.now() - global.disdate), {
+            await msg.channel.send('```js\n' + '-> ' + eaa + '``````ts\n' + typeOf(tonq) + "``` " + "`success`" + ":timer:" + " " + prettyMs(Number.isFinite((Date.now() - global.disdate)) == true ? (Date.now() - global.disdate) : 0), {
               split: {
                 prepend: "\x60\x60\x60js\n",
                 append: "\n\x60\x60\x60"
@@ -338,7 +382,7 @@ client.on('message', async function (msg) {
 
       } catch (e) {
         //console.log(global.disdate)
-        await msg.channel.send('```diff\n' + '-> ' + require("util").inspect(e) + '\n```' + "`FAIL!!!`" + " " + ":timer:" + " " + prettyMs(Date.now() - global.disdate));
+        await msg.channel.send('```diff\n' + '-> ' + require("util").inspect(e) + '\n```' + "`FAIL!!!`" + " " + ":timer:" + " " + prettyMs(Number.isFinite((Date.now() - global.disdate)) == true ? (Date.now() - global.disdate) : 0));
       }
     } else {
       msg.react("⛔");
