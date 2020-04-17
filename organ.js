@@ -43,7 +43,7 @@ class Organ {
         break;
       }
       case "❌": {
-
+        msg.delete()
         break;
       }
     }
