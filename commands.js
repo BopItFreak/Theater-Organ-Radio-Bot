@@ -143,7 +143,8 @@ this.client.on("message", msg => {
           //data.nextSongArtistAndAlbum = separator.split(`<dd>`)[1].split("</dd></dl>")[0]
           //console.log(data)
           axios.get(`https://atosradio.org/atosradio/playing.html`)
-            .then((res) => {
+            .then(function (res) {
+              let songListData = require("./data.json"); //bruh moment
               let nextSong = {};
               let nextNextSong = {};
               nextSong.name = res.data.split(`<span class="comingIndex">`)[1].split(`</span>`)[0].split("1 -")[1].trim();
@@ -163,7 +164,7 @@ this.client.on("message", msg => {
                     "text": `Requested by ${msg.author.username}`
                   },
                   "thumbnail": {
-                    "url": this.songListData.find((d) => d.album === songData.album).pictureUrl
+                    "url": songListData.find((d) => d.album === songData.album).pictureUrl
                   },
                   "fields": [{
                     "name": "Title",
