@@ -26,10 +26,14 @@ class Organ {
     })
     require("./commands.js").bind(this)();
   }
-  editSearchMessage(msg, type, newPageNum, searchChunks) {
+  async editSearchMessage(msg, type, newPageNum, searchChunks) {
+    let userReactions = msg.reactions.filter(reaction => reaction.users.has(msg.author.id));
     switch (type) {
       case "⬆️": {
-        if (searchChunks[newPageNum + 1]) {
+        if (searchChunks[newPageNum + 1]) {     
+          for (const reaction of userReactions.values()) {
+            if (reaction._emoji.name == "⬆️") reaction.remove(msg.author.id).catch((e) => {}); //no errors        
+          }
           ++msg.searchPageIndex;
           msg.edit(this.makeSearchMessage(msg, ++newPageNum, searchChunks))
         }
@@ -37,6 +41,9 @@ class Organ {
       }
       case "⬇️": {
         if (searchChunks[newPageNum - 1]) {
+          for (const reaction of userReactions.values()) {
+            if (reaction._emoji.name == "⬇️") reaction.remove(msg.author.id).catch((e) => {});          
+          }
           --msg.searchPageIndex;
           msg.edit(this.makeSearchMessage(msg, --newPageNum, searchChunks))
         }
