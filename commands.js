@@ -1,4 +1,5 @@
 
+const axios = require('axios');
 module.exports = function () {
 this.client.on("message", msg => {
   if (msg.author.bot) return;
