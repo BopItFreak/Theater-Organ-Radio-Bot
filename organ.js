@@ -7,6 +7,7 @@ class Organ {
     this.songListData = require("./data.json");
     this.init();
     this.lastSearchMessages = [];
+    this.connectionTimeouts = [];
   }
   init() {
     this.client.bot = this; //hack
@@ -22,6 +23,25 @@ class Organ {
         let msg = this.lastSearchMessages[reaction.message.channel.id]
         msg.author = user;
         this.editSearchMessage(msg, reaction._emoji.name, msg.searchPageIndex, msg.searchPageChunks)
+      }
+    })
+
+    this.client.on("voiceStateUpdate", (oldMember, newMember) => {
+      let voicechs = [...this.client.guilds.get(oldMember.guild.id).channels.filter((ch) => ch.type === "voice").values()];
+      for (const channel of voicechs) {
+        if ([...channel.members.values()].length > 0) {
+          for (const member of [...channel.members.values()]) {
+            if (member.user.id === this.client.user.id) { //if bot is in the channel
+              this.connectionTimeouts[oldMember.guild.id] = setTimeout(() => {
+                if ([...channel.members.values()].length == 1) {//only bot is in the voice channel                
+                  channel.leave();        
+                  console.log("left channel due to inactivity.")                        
+                }
+              }, 1000 * 60 * 5) // 5 minutes
+              return;
+            }
+          }
+        }
       }
     })
     require("./commands.js").bind(this)();
