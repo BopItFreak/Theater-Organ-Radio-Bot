@@ -94,6 +94,7 @@ this.client.on("message", msg => {
           msg.searchPageIndex = 0;
           msg.searchPageChunks = searchPageChunks;
           msg.input = input;
+          this.lastSearchMessages[msg.channel.id] ? this.lastSearchMessages[msg.channel.id].delete() : {};
           this.lastSearchMessages[msg.channel.id] = msg;
           msg.react("⬅️"); msg.react("➡️"); msg.react("❌");
         })
