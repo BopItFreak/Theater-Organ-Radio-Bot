@@ -18,7 +18,16 @@ class Organ {
     })
 
     this.client.on("messageReactionAdd", (reaction, user) => {
-      if ((reaction._emoji.name == "⬆️" || reaction._emoji.name == "⬇️" || reaction._emoji.name == "❌") && (user.id !== this.client.user.id)) {
+      if ((reaction._emoji.name == "⬅️" || reaction._emoji.name == "➡️" || reaction._emoji.name == "❌") && (user.id !== this.client.user.id)) {
+        if (!this.lastSearchMessages[reaction.message.channel.id] || (reaction.message.id !== this.lastSearchMessages[reaction.message.channel.id].id)) return;
+        let msg = this.lastSearchMessages[reaction.message.channel.id]
+        msg.author = user;
+        this.editSearchMessage(msg, reaction._emoji.name, msg.searchPageIndex, msg.searchPageChunks)
+      }
+    })
+
+    this.client.on("messageReactionRemove", (reaction, user) => {
+      if ((reaction._emoji.name == "⬅️" || reaction._emoji.name == "➡️" || reaction._emoji.name == "❌") && (user.id !== this.client.user.id)) {
         if (!this.lastSearchMessages[reaction.message.channel.id] || (reaction.message.id !== this.lastSearchMessages[reaction.message.channel.id].id)) return;
         let msg = this.lastSearchMessages[reaction.message.channel.id]
         msg.author = user;
@@ -49,20 +58,20 @@ class Organ {
   async editSearchMessage(msg, type, newPageNum, searchChunks) {
     let userReactions = msg.reactions.filter(reaction => reaction.users.has(msg.author.id));
     switch (type) {
-      case "⬆️": {
+      case "➡️": {
         if (searchChunks[newPageNum + 1]) {     
           for (const reaction of userReactions.values()) {
-            if (reaction._emoji.name == "⬆️") reaction.remove(msg.author.id).catch((e) => {}); //no errors        
+            if (reaction._emoji.name == "➡️") reaction.remove(msg.author.id).catch((e) => {}); //no errors        
           }
           ++msg.searchPageIndex;
           msg.edit(this.makeSearchMessage(msg, ++newPageNum, searchChunks))
         }
         break;
       }
-      case "⬇️": {
+      case "⬅️": {
         if (searchChunks[newPageNum - 1]) {
           for (const reaction of userReactions.values()) {
-            if (reaction._emoji.name == "⬇️") reaction.remove(msg.author.id).catch((e) => {});          
+            if (reaction._emoji.name == "⬅️") reaction.remove(msg.author.id).catch((e) => {});          
           }
           --msg.searchPageIndex;
           msg.edit(this.makeSearchMessage(msg, --newPageNum, searchChunks))

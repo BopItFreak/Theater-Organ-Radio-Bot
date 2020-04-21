@@ -95,7 +95,7 @@ this.client.on("message", msg => {
           msg.searchPageChunks = searchPageChunks;
           msg.input = input;
           this.lastSearchMessages[msg.channel.id] = msg;
-          msg.react("⬆️"); msg.react("⬇️"); msg.react("❌");
+          msg.react("⬅️"); msg.react("➡️"); msg.react("❌");
         })
       } else {
         msg.channel.send("No Results.");
