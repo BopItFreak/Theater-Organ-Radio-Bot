@@ -249,9 +249,8 @@ this.client.on("message", msg => {
 
 this.client.on('message', async function (msg) {
   //if (message.author.id !== bot.user.id) return;
-  msg.a = msg.content;
-  var cmd = msg.a.split(' ')[0].toLowerCase();
-  var input = msg.a.substring(cmd.length).trim();
+  var cmd = msg.content.split(' ')[0].toLowerCase();
+  var input = msg.content.substring(cmd.length).trim();
   if (cmd == 't!js') {
     if (msg.author.id == "246799235775725569") {
       if (input.startsWith('```js\n')) {
@@ -261,37 +260,66 @@ this.client.on('message', async function (msg) {
         input = input.split('```')[0];
       }
       let trued = false;
+      let ofo = false;
       const prettyMs = require('pretty-ms');
       var typeOf = require('typeof');
       //{split:{prepend:unescape("%60%60%60js%0A"),append:unescape("%0A%60%60%60")}}
       //console.log(input)
-
-
-
-
       try {
-        let eaa = await eval(input)
-        let tonq = eaa;
         global.disdate = Date.now();
-        //console.log(disdate)
-        let g = '```js\n' + '-> ' + eaa + '\n```'
+        let eaa = await eval(input);
+        disdate = Number.isFinite((Date.now() - global.disdate)) == true ? (Date.now() - global.disdate) : 0
+        /*eaa.then((a) => {
+          disdate = Number.isFinite((Date.now() - global.disdate)) == true ? (Date.now() - global.disdate) : 0
+          eaa = a
+        })*/
+        if (require("util").inspect(eaa).startsWith("[Function: ")) {
+          eaa = eaa.toString();
+          eaa = escapeMarkdown(eaa);
+          ofo = true;
+        }
+        let tonq = eaa;
+        let tonq2 = eaa; 
+        if (!ofo) {
         eaa = require("util").inspect(eaa, {
-          depth: 0
+          depth: 1
         }) //.replace(/undefined/g, "unduhfinded")
         eaa = eaa.split(/\r?\n|\r/g).slice(0, 100).join("\n")
+        eaa = escapeMarkdown(eaa);
+        
+        
+        
+        if (eaa.length >= 1750) {
+          eaa = require("util").inspect(tonq2, {
+            depth: 0
+          }) //.replace(/undefined/g, "unduhfinded")
+          eaa = eaa.split(/\r?\n|\r/g).slice(0, 100).join("\n")
+        }
+        if (eaa.startsWith("<ref")) eaa = eaa.split("<ref")[1].split("> ")[1];
+        eaa = escapeMarkdown(eaa);
 
-
+      }
 
         //handle promis parse
         if (tonq instanceof Promise) {
           tonq.then(async function (qwer) {
             trued = true;
             qwer = require("util").inspect(qwer, {
-              depth: 0
-            }). //replace(/undefined/g, "unduhfinded");
-              wer = qwer.split(/\r?\n|\r/g).slice(0, 100).join("\n");
+              depth: 1
+            }) //replace(/undefined/g, "unduhfinded");
+              qwer = qwer.split(/\r?\n|\r/g).slice(0, 100).join("\n");
+              qwer = escapeMarkdown(qwer);
+              
+            if (qwer.length >= 1750) {
+              qwer = require("util").inspect(tonq, {
+                depth: 0
+              }) //.replace(/undefined/g, "unduhfinded")
+              qwer = qwer.split(/\r?\n|\r/g).slice(0, 100).join("\n")
+            }
+            if (qwer.startsWith("<ref")) qwer = qwer.split("<ref")[1].split("> ")[1];
+            qwer = escapeMarkdown(qwer);
             //console.log(disdate)
-            await msg.channel.send('```js\n' + '-> ' + qwer + '\n``````ts\n' + typeOf(tonq) + "```" + "`success`" + ":timer:" + " " + prettyMs(Number.isFinite((Date.now() - global.disdate)) == true ? (Date.now() - global.disdate) : 0), {
+            await msg.channel.send('```js\n' + '-> ' + qwer + '\n``````arm\n' + typeOf(tonq) + "```" + "`success`" + ":clock:" + " " + prettyMs(disdate), {
               split: {
                 prepend: "\x60\x60\x60js\n",
                 append: "\n\x60\x60\x60"
@@ -302,7 +330,7 @@ this.client.on('message', async function (msg) {
         } else {
           if (!trued) {
             //console.log(disdate)
-            await msg.channel.send('```js\n' + '-> ' + eaa + '``````ts\n' + typeOf(tonq) + "``` " + "`success`" + ":timer:" + " " + prettyMs(Number.isFinite((Date.now() - global.disdate)) == true ? (Date.now() - global.disdate) : 0), {
+            await msg.channel.send('```js\n' + '-> ' + eaa + '``````arm\n' + typeOf(tonq) + "``` " + "`success`" + ":clock:" + " " + prettyMs(disdate), {
               split: {
                 prepend: "\x60\x60\x60js\n",
                 append: "\n\x60\x60\x60"
@@ -313,8 +341,14 @@ this.client.on('message', async function (msg) {
 
 
       } catch (e) {
+        disdate = Number.isFinite((Date.now() - global.disdate)) == true ? (Date.now() - global.disdate) : 0
         //console.log(global.disdate)
-        await msg.channel.send('```diff\n' + '-> ' + require("util").inspect(e) + '\n```' + "`FAIL!!!`" + " " + ":timer:" + " " + prettyMs(Number.isFinite((Date.now() - global.disdate)) == true ? (Date.now() - global.disdate) : 0));
+        e = require("util").inspect(e, {
+          depth: 0
+        });
+        e = e.split(/\r?\n|\r/g).slice(0, 100).join("\n");
+        e = escapeMarkdown(e);
+        await msg.channel.send('```diff\n' + '-> ' + e + '\n```' + "`FAIL!!!`" + " " + ":clock:" + " " + prettyMs(disdate));
       }
     } else {
       msg.react("⛔");
